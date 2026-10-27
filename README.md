@@ -6,6 +6,18 @@ O repositório registra exercícios de aprendizagem e um projeto final. Ele demo
 
 [Projeto final](WEB/ASPNET%20Core_Part%202/CasaDoCodigo) · [Solução](WEB/ASPNET%20Core_Part%202/CasaDoCodigo.sln) · [Execução](#como-executar-localmente) · [Testes](#testes-e-validação) · [Evolução](#próximos-passos)
 
+## Visão rápida para avaliação técnica
+
+| Aspecto | O que este projeto demonstra |
+| --- | --- |
+| Domínio | Catálogo de livros, carrinho e cadastro para resumo do pedido. |
+| Backend | C# com ASP.NET Core MVC, DI, sessão e validação no servidor. |
+| Dados | EF Core, SQL Server e relacionamentos entre pedido, itens, produtos e cadastro. |
+| Ponto de entrada | `WEB/ASPNET Core_Part 2/CasaDoCodigo`, executado em ambiente compatível com .NET Core 2.0. |
+| Validação disponível | Código e demonstração visual; sem suíte automatizada ou execução confirmada nesta revisão. |
+
+**Percurso sugerido:** explore o fluxo principal e os arquivos da arquitetura, reproduza a aplicação localmente e use as limitações e próximos passos como roteiro para evolução. Para uma leitura rápida, o projeto final é o foco; as demais soluções preservam as etapas de aprendizagem.
+
 ## Funcionalidades implementadas
 
 - Catálogo carregado de `livros.json` e persistido no banco na inicialização.
