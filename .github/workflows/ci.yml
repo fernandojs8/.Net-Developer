@@ -1,0 +1,57 @@
+name: Casa do Codigo CI
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      sql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: Y
+          MSSQL_SA_PASSWORD: Local_test_password_123!
+        ports: [1433:1433]
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P Local_test_password_123! -C -Q 'SELECT 1' -b -o /dev/null"
+          --health-interval 5s --health-timeout 5s --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: {dotnet-version: '10.0.x'}
+      - run: dotnet restore CasaDoCodigo.sln
+      - run: dotnet build CasaDoCodigo.sln -c Release --no-restore
+      - name: Unit and SQL HTTP security integration
+        env:
+          RUN_INTEGRATION_TESTS: 'true'
+          TEST_SQL: Server=localhost;User Id=sa;Password=Local_test_password_123!;TrustServerCertificate=True
+        run: dotnet test "WEB/ASPNET Core_Part 2/CasaDoCodigo.Tests" -c Release --no-build --logger "trx;LogFileName=tests.trx"
+      - run: dotnet publish "WEB/ASPNET Core_Part 2/CasaDoCodigo" -c Release --no-build -o artifacts/app
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tests
+          path: '**/TestResults/*.trx'
+  containers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp .env.example .env
+      - run: docker compose up --build -d
+      - name: Shared session, restart and rollback
+        run: python3 scripts/smoke.py --rollback
+      - if: always()
+        run: docker compose logs --no-color
+      - if: always()
+        run: docker compose down -v
+  infrastructure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: az bicep build --file infra/main.bicep --outfile /tmp/main.json

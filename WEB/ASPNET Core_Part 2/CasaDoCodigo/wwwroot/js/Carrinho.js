@@ -1,4 +1,4 @@
-﻿
+
 class Carrinho {
     clickIncremento(button) {
         let data = this.getData(button);
@@ -23,8 +23,9 @@ class Carrinho {
         var novaQuantidade = $(linhaDoItem).find('input').val();
 
         return {
-            Id: idProduto,
-            Quantidade: novaQuantidade
+            Id: Number(idProduto),
+            RowVersion: $(linhaDoItem).attr('item-version'),
+            Quantidade: Number(novaQuantidade)
         };
     }
 
@@ -44,6 +45,8 @@ class Carrinho {
             let linhaDoItem = $('[item-id=' + itemPedido.id + ']');
 
             linhaDoItem.find('input').val(itemPedido.quantidade);
+            linhaDoItem.attr('item-version', itemPedido.rowVersion);
+            $('#cart-error').text('');
             linhaDoItem.find('[subtotal]').html((itemPedido.subTotal).duasCasas());
 
             let carrinhoViewModel = response.carrinhoViewModel;
@@ -54,6 +57,8 @@ class Carrinho {
             if (itemPedido.quantidade === 0) {
                 linhaDoItem.remove();
             }
+        }).fail(function () {
+            $('#cart-error').text('Não foi possível atualizar. Confira a quantidade (0 a 99) e recarregue o carrinho.');
         });
     }
 }

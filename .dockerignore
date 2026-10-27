@@ -1,0 +1,7 @@
+**/bin
+**/obj
+.git
+.env
+Banco de Dados
+WEB/ASPNET Core_Part 1
+**/TestResults

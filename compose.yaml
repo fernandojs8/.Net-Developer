@@ -1,0 +1,40 @@
+name: casadocodigo
+x-app: &app
+  build: .
+  image: ${APP_IMAGE:-casadocodigo:local}
+  environment:
+    ASPNETCORE_ENVIRONMENT: Production
+    LocalHttp: "true"
+    ConnectionStrings__Default: Server=sql;Database=CasaDoCodigo;User Id=sa;Password=${SQL_PASSWORD:?Copy .env.example to .env};TrustServerCertificate=True
+services:
+  sql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: Y
+      MSSQL_SA_PASSWORD: ${SQL_PASSWORD:?Set SQL_PASSWORD}
+    ports: ["127.0.0.1:1433:1433"]
+    volumes: ["sql-data:/var/opt/mssql"]
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "SELECT 1" -b -o /dev/null
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  migrate:
+    <<: *app
+    command: ["--migrate", "--seed"]
+    depends_on: {sql: {condition: service_healthy}}
+  web:
+    <<: *app
+    restart: unless-stopped
+    ports: ["127.0.0.1:5080:8080"]
+    depends_on: {migrate: {condition: service_completed_successfully}}
+  web2:
+    <<: *app
+    restart: unless-stopped
+    ports: ["127.0.0.1:5081:8080"]
+    depends_on: {migrate: {condition: service_completed_successfully}}
+volumes:
+  sql-data:

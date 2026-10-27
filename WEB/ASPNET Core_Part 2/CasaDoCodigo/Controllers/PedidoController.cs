@@ -1,60 +1,42 @@
-﻿using CasaDoCodigo.Models;
+using CasaDoCodigo.Models;
 using CasaDoCodigo.Models.ViewModels;
 using CasaDoCodigo.Repositories;
-using CasaDoCodigo.Repositories.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-
-namespace CasaDoCodigo.Controllers
+using Microsoft.EntityFrameworkCore;
+namespace CasaDoCodigo.Controllers;
+[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+public class PedidoController(IProdutoRepository produtos, IPedidoRepository pedidos) : Controller
 {
-    public class PedidoController : Controller
+    [HttpGet] public async Task<IActionResult> Carrossel() => View(await produtos.GetProdutosAsync());
+    [HttpGet] public async Task<IActionResult> Carrinho() => View(new CarrinhoViewModel((await pedidos.GetPedidoAsync()).Items));
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Adicionar(string codigo)
     {
-        private readonly IProdutoRepository produtoRepository;
-        private readonly IPedidoRepository pedidoRepository;
-        private readonly IItemPedidoRepository itemPedidoRepository;
-
-        public PedidoController(IProdutoRepository produtoRepository, IPedidoRepository pedidoRepository, IItemPedidoRepository itemPedidoRepository)
-        {
-            this.produtoRepository = produtoRepository;
-            this.pedidoRepository = pedidoRepository;
-            this.itemPedidoRepository = itemPedidoRepository;
-        }
-
-        public IActionResult Carrossel() => View(produtoRepository.GetProdutos());
-
-        public IActionResult Cadastro()
-        {
-            var pedido = pedidoRepository.GetPedido();
-
-            if (pedido == null)
-                return RedirectToAction("Carrossel");
-
-            return View();
-        }
-
-        public IActionResult Carrinho(string codigo)
-        {
-            if (!string.IsNullOrWhiteSpace(codigo))
-                pedidoRepository.AddItem(codigo);
-
-            List<ItemPedido> items = pedidoRepository.GetPedido().Items;
-            CarrinhoViewModel carrinhoViewModel = new CarrinhoViewModel(items);
-
-            return View(carrinhoViewModel);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Resumo(Cadastro cadastro)
-        {
-            if (ModelState.IsValid)
-                return View(pedidoRepository.UpdateCadastro(cadastro));
-
-            return RedirectToAction("Cadastro");
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public UpdateQuantidadeResponse UpdateQuantidadePedido([FromBody]ItemPedido item) => pedidoRepository.UpdatePedidoQuantidade(item);
+        try { await pedidos.AddItemAsync(codigo); return RedirectToAction(nameof(Carrinho)); }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (DbUpdateException) { return Conflict("Carrinho alterado simultaneamente. Atualize a página."); }
+    }
+    [HttpGet] public async Task<IActionResult> Cadastro()
+    {
+        var pedido = await pedidos.GetPedidoAsync();
+        if (pedido.Items.Count == 0) return RedirectToAction(nameof(Carrinho));
+        return View(CadastroInput.From(pedido.Cadastro));
+    }
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Resumo(CadastroInput cadastro)
+    {
+        if (!ModelState.IsValid) return View("Cadastro", cadastro);
+        try { return View(await pedidos.UpdateCadastroAsync(cadastro)); }
+        catch (ArgumentException ex) { ModelState.AddModelError("", ex.Message); return View("Cadastro", cadastro); }
+    }
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateQuantidadePedido([FromBody] QuantidadeInput input)
+    {
+        if (input == null || !ModelState.IsValid) return BadRequest(ModelState);
+        try { return Ok(await pedidos.UpdateQuantidadeAsync(input)); }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (DbUpdateConcurrencyException) { return Conflict("Item alterado em outra requisição. Atualize o carrinho."); }
     }
 }

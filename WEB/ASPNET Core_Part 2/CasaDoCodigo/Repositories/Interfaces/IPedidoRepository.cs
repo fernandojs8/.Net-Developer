@@ -1,13 +1,9 @@
-﻿using CasaDoCodigo.Models;
-
-namespace CasaDoCodigo.Repositories
+using CasaDoCodigo.Models;
+namespace CasaDoCodigo.Repositories;
+public interface IPedidoRepository
 {
-    public interface IPedidoRepository
-    {
-        Pedido GetPedido();
-        void AddItem(string codigo);
-        UpdateQuantidadeResponse UpdatePedidoQuantidade(ItemPedido itemPedido);
-
-        Pedido UpdateCadastro(Cadastro cadastro);
-    }
+    Task<Pedido> GetPedidoAsync();
+    Task AddItemAsync(string codigo);
+    Task<object> UpdateQuantidadeAsync(QuantidadeInput input);
+    Task<Pedido> UpdateCadastroAsync(CadastroInput cadastro);
 }

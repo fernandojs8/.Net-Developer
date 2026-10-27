@@ -1,28 +1,21 @@
-﻿using CasaDoCodigo.Models;
+using CasaDoCodigo.Models;
 using Microsoft.EntityFrameworkCore;
-
-namespace CasaDoCodigo
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
+namespace CasaDoCodigo;
+public class ApplicationContext(DbContextOptions<ApplicationContext> options) : DbContext(options), IDataProtectionKeyContext
 {
-    public class ApplicationContext : DbContext
+    public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
+    protected override void OnModelCreating(ModelBuilder model)
     {
-        public ApplicationContext(DbContextOptions options) : base(options) { }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
-
-            modelBuilder.Entity<Produto>().HasKey(produto => produto.Id);
-
-            modelBuilder.Entity<Pedido>().HasKey(pedido => pedido.Id);
-            modelBuilder.Entity<Pedido>().HasMany(pedido => pedido.Items).WithOne(itemPedido => itemPedido.Pedido);
-            modelBuilder.Entity<Pedido>().HasOne(pedido => pedido.Cadastro).WithOne(cadastro => cadastro.Pedido);
-
-            modelBuilder.Entity<ItemPedido>().HasKey(itemPedido => itemPedido.Id);
-            modelBuilder.Entity<ItemPedido>().HasOne(itemPedido => itemPedido.Pedido);
-            modelBuilder.Entity<ItemPedido>().HasOne(itemPedido => itemPedido.Produto);
-
-            modelBuilder.Entity<Cadastro>().HasKey(cadastro => cadastro.Id);
-            modelBuilder.Entity<Cadastro>().HasOne(cadastro => cadastro.Pedido);
-        }
+        base.OnModelCreating(model);
+        model.Entity<Produto>().HasIndex(x => x.Codigo).IsUnique();
+        model.Entity<Produto>().Property(x => x.Preco).HasPrecision(18, 2);
+        model.Entity<Pedido>().HasMany(x => x.Items).WithOne(x => x.Pedido).HasForeignKey("PedidoId");
+        model.Entity<Pedido>().HasOne(x => x.Cadastro).WithOne(x => x.Pedido).HasForeignKey<Pedido>("CadastroId");
+        model.Entity<ItemPedido>().HasOne(x => x.Produto).WithMany().HasForeignKey("ProdutoId");
+        model.Entity<ItemPedido>().Property(x => x.PrecoUnitario).HasPrecision(18, 2);
+        model.Entity<ItemPedido>().Property(x => x.RowVersion).IsRowVersion();
+        model.Entity<ItemPedido>().HasIndex("PedidoId", "ProdutoId").IsUnique();
+        model.Entity<ItemPedido>().ToTable("ItemPedido", table => table.HasCheckConstraint("CK_ItemPedido_Quantidade", "[Quantidade] >= 0 AND [Quantidade] <= 99"));
     }
 }

@@ -1,232 +1,145 @@
 # .NET Developer — Casa do Código
 
-Projeto de estudo em **C# e ASP.NET Core MVC**, desenvolvido durante a formação .NET da [Alura](https://cursos.alura.com.br/formacao-dotnet). O destaque é uma aplicação web de catálogo de livros com carrinho, cadastro do comprador e resumo do pedido, persistidos com Entity Framework Core e SQL Server.
+Aplicação MVC de catálogo de livros, carrinho e cadastro para resumo do pedido. O projeto final da formação .NET da [Alura](https://cursos.alura.com.br/formacao-dotnet) foi modernizado para **C# / .NET 10 / ASP.NET Core MVC / EF Core 10 / SQL Server**. As demais soluções preservam os exercícios históricos.
 
-O repositório registra exercícios de aprendizagem e um projeto final. Ele demonstra fundamentos de backend — injeção de dependência, persistência relacional, relacionamentos, sessão, validação e integração entre interface e servidor. **Não há evidências versionadas de operação em produção ou implantação em cloud.**
+[Aplicação](WEB/ASPNET%20Core_Part%202/CasaDoCodigo) · [Testes](WEB/ASPNET%20Core_Part%202/CasaDoCodigo.Tests) · [CI](.github/workflows/ci.yml) · [Azure](docs/azure.md) · [Operação](docs/operations.md)
 
-[Projeto final](WEB/ASPNET%20Core_Part%202/CasaDoCodigo) · [Solução](WEB/ASPNET%20Core_Part%202/CasaDoCodigo.sln) · [Execução](#como-executar-localmente) · [Testes](#testes-e-validação) · [Evolução](#próximos-passos)
+## Roteiro implementado
 
-## Visão rápida para avaliação técnica
-
-| Aspecto | O que este projeto demonstra |
+| Próximo passo do README anterior | Mudança |
 | --- | --- |
-| Domínio | Catálogo de livros, carrinho e cadastro para resumo do pedido. |
-| Backend | C# com ASP.NET Core MVC, DI, sessão e validação no servidor. |
-| Dados | EF Core, SQL Server e relacionamentos entre pedido, itens, produtos e cadastro. |
-| Ponto de entrada | `WEB/ASPNET Core_Part 2/CasaDoCodigo`, executado em ambiente compatível com .NET Core 2.0. |
-| Validação disponível | Código e demonstração visual; sem suíte automatizada ou execução confirmada nesta revisão. |
+| Correção funcional e segurança | Item sempre consultado pelo pedido da sessão; DTOs de entrada; quantidade de 0 a 99; nulos tratados; inclusão por POST com antiforgery; formulário inválido preservado; rota de erro válida. |
+| Atualização tecnológica | Projeto final em .NET 10, EF Core 10.0.14 e SDK selecionado em `global.json`; remoção do metapacote ASP.NET Core 2 e do snippet de telemetria antigo. |
+| Qualidade reproduzível | Testes unitários, HTTP/SQL reais e CI com build, testes, publicação e cenário em containers. |
+| Persistência previsível | Migrations explícitas, seed separado e repetível, índices únicos, check de quantidade e rowversion para alterações concorrentes. |
+| Preparação de demonstração cloud | Bicep para App Service/Azure SQL/Key Vault/Monitor, workflow manual com OIDC, staging, verificação HTTPS e promoção por swap. A implantação real exige configuração da conta Azure. |
+| Operação | Health checks, logs estruturados, instrumentação OpenTelemetry/SQL, alerta HTTP 5xx no template Azure e ensaio automatizado de rollback em containers. |
 
-**Percurso sugerido:** explore o fluxo principal e os arquivos da arquitetura, reproduza a aplicação localmente e use as limitações e próximos passos como roteiro para evolução. Para uma leitura rápida, o projeto final é o foco; as demais soluções preservam as etapas de aprendizagem.
+O projeto continua sendo uma demonstração: não processa pagamentos, frete, estoque ou um checkout comercial. Não há autenticação de usuários; o carrinho pertence à sessão anônima. Use dados fictícios.
 
-## Funcionalidades implementadas
+## Funcionalidades e arquitetura
 
-- Catálogo carregado de `livros.json` e persistido no banco na inicialização.
-- Criação e recuperação de pedido por identificador armazenado na sessão.
-- Inclusão de produtos no carrinho; adicionar novamente o mesmo produto não incrementa sua quantidade.
-- Alteração de quantidade por AJAX, recálculo de subtotais e total e remoção quando a quantidade chega a zero.
-- Formulário de dados pessoais e endereço, com Data Annotations e verificação de `ModelState` no servidor.
-- Persistência do cadastro e apresentação do resumo do pedido.
-
-O fluxo termina no resumo: não foram encontrados pagamento, integração de frete, controle de estoque ou estados de processamento do pedido.
-
-### Demonstração visual
-
-![Demonstração do projeto Casa do Código](WEB/ASPNET%20Core_Part%202/CasaDoCodigo/wwwroot/images/Final_Project_AspNetCore_MVC_EntityFrameworkCore.gif)
-
-O GIF ilustra a interface; a implementação e as limitações estão descritas abaixo. Ele não comprova o estado atual de execução nem uma implantação pública.
-
-## Organização do repositório
-
-| Diretório | Conteúdo |
-| --- | --- |
-| [Banco de Dados](Banco%20de%20Dados) | Aplicação console de exercícios de EF Core, consultas, relacionamentos e migrations; projeto direcionado ao .NET Framework 4.6.1. |
-| [WEB/ASPNET Core_Part 1](WEB/ASPNET%20Core_Part%201) | Aplicação de lista de leitura, com exemplos de roteamento, MVC e repositórios CSV/fake. |
-| [WEB/ASPNET Core_Part 2](WEB/ASPNET%20Core_Part%202) | Projeto final Casa do Código, foco desta documentação. |
-
-As soluções são independentes; não existe uma solução única na raiz.
-
-## Tecnologias do projeto final
-
-| Tecnologia | Evidência no código |
-| --- | --- |
-| C# / .NET Core 2.0 | `TargetFramework=netcoreapp2.0` em [CasaDoCodigo.csproj](WEB/ASPNET%20Core_Part%202/CasaDoCodigo/CasaDoCodigo.csproj). |
-| ASP.NET Core MVC | Metapacote `Microsoft.AspNetCore.All` 2.0.9, controllers, views Razor e rotas convencionais. |
-| Entity Framework Core / SQL Server | `ApplicationContext`, `UseSqlServer`, consultas LINQ, `Include`/`ThenInclude` e `SaveChanges`. |
-| Sessão e cache em memória | `AddSession`, `AddDistributedMemoryCache` e chave de sessão `pedidoId`. |
-| Newtonsoft.Json | Leitura do catálogo JSON em `Models/Livro.cs`. |
-| Razor, Bootstrap e jQuery | Views, layout e atualização do carrinho em `wwwroot/js/Carrinho.js`. |
-
-Essas são as tecnologias presentes no código legado; não representam uma migração para uma versão atual do .NET.
-
-## Arquitetura
-
-Aplicação monolítica MVC em um único projeto, organizada por responsabilidades em pastas. Os repositórios concentram tanto acesso a dados quanto parte das regras do carrinho; não há projetos separados de domínio, aplicação e infraestrutura.
+- Catálogo importado de `livros.json` apenas pelo comando explícito de seed.
+- Inclusão de um produto no carrinho sem duplicar o item nem incrementar ao repetir o POST.
+- Atualização de quantidade com recálculo e remoção quando chega a zero.
+- Cadastro validado no servidor, seguido pelo resumo do pedido.
+- Sessão distribuída e chaves de proteção no SQL Server, compartilhadas entre instâncias.
 
 ```mermaid
 flowchart TD
-    A["Navegador: Razor e jQuery"] --> B["PedidoController"]
-    B --> C["Repositórios: pedido, produto, item e cadastro"]
-    C --> D["ApplicationContext / EF Core"]
-    D --> E["SQL Server"]
-    C --> F["Sessão: pedidoId em memória"]
-    G["DataService na inicialização"] --> D
-    G --> H["livros.json e importação do catálogo"]
+    B["Navegador: Razor e JavaScript"] --> C["PedidoController: antiforgery e DTOs"]
+    C --> R["Repositórios assíncronos"]
+    R --> D["EF Core / SQL Server"]
+    C --> S["Sessão SQL: pedidoId"]
+    K["Chaves de Data Protection no SQL"] --> S
+    R --> V["Rowversion e restrições do banco"]
 ```
 
-| Responsabilidade | Onde consultar |
-| --- | --- |
-| Configuração de MVC, DI, sessão, banco e rotas | [Startup.cs](WEB/ASPNET%20Core_Part%202/CasaDoCodigo/Startup.cs) |
-| Entrada das requisições e escolha das views | [PedidoController.cs](WEB/ASPNET%20Core_Part%202/CasaDoCodigo/Controllers/PedidoController.cs) |
-| Recuperação do pedido, inclusão e atualização de itens | [PedidoRepository.cs](WEB/ASPNET%20Core_Part%202/CasaDoCodigo/Repositories/PedidoRepository.cs) |
-| Mapeamento de entidades e relacionamentos | [ApplicationContext.cs](WEB/ASPNET%20Core_Part%202/CasaDoCodigo/ApplicationContext.cs) |
-| Criação inicial do banco e importação de livros | [DataService.cs](WEB/ASPNET%20Core_Part%202/CasaDoCodigo/DataService.cs) |
-| Interação AJAX e atualização dos totais na tela | [Carrinho.js](WEB/ASPNET%20Core_Part%202/CasaDoCodigo/wwwroot/js/Carrinho.js) |
+O monólito usa projetos/pastas históricos do curso, sem inventar uma arquitetura de microsserviços. `Pedido` referencia `Cadastro` e itens; cada item referencia um produto e guarda preço unitário e quantidade. DTOs evitam vincular o grafo EF diretamente aos dados recebidos.
 
-### Modelo de dados
+### Fluxo HTTP
 
-- `Pedido` possui uma coleção de `ItemPedido` e um `Cadastro`.
-- `ItemPedido` referencia o pedido e o produto; guarda quantidade e preço unitário, com subtotal calculado.
-- `Produto` representa os livros disponíveis no catálogo.
-- `Cadastro` armazena os dados do comprador e o endereço daquele pedido; não representa uma conta autenticada.
+1. `GET /` exibe o catálogo, com formulários POST de inclusão.
+2. `POST /Pedido/Adicionar` exige token antiforgery, procura o produto e associa o item ao pedido da sessão.
+3. `GET /Pedido/Carrinho` apenas exibe o carrinho; parâmetro `codigo` não inclui produtos.
+4. `POST /Pedido/UpdateQuantidadePedido` exige antiforgery, ID, quantidade e rowversion. Item de outra sessão retorna 404; valor inválido retorna 400; versão desatualizada retorna 409.
+5. `GET /Pedido/Cadastro` mostra o formulário. `POST /Pedido/Resumo` valida os dados e preserva valores/erros se inválidos.
 
-### Escolhas observadas e suas implicações
+O resumo não encerra a sessão nem confirma pagamento. A consulta GET do carrinho pode criar um pedido vazio para a sessão; a inclusão de produto é exclusivamente POST.
 
-Não há registros de decisão arquitetural (ADRs). As implicações abaixo são uma leitura da implementação, não uma atribuição de intenções ao autor.
+## Executar com Docker Compose
 
-| Escolha presente | Implicação |
-| --- | --- |
-| Interfaces e registro dos repositórios na DI | Dependências explícitas nos construtores; facilita substituir colaboradores em futuros testes. |
-| EF Core com carregamento de itens, produtos e cadastro | Permite montar o pedido e suas views usando o modelo relacional. |
-| Identificador do pedido na sessão | Dispensa login no exercício; a associação depende da sessão do navegador. |
-| Cache de sessão em memória do processo | Reiniciar a aplicação perde a associação em memória, embora os pedidos continuem no SQL Server; não há cache compartilhado configurado entre instâncias. |
-| `EnsureCreated()` na inicialização | Facilita criar uma base vazia; não aplica migrations nem oferece evolução controlada do esquema existente. |
-| Data Annotations e antiforgery nos POSTs indicados | Há validação de cadastro e proteção antiforgery, mas isso não substitui autorização ou validação das regras do carrinho. |
+Pré-requisitos: Docker com Compose v2 em um host compatível com a imagem SQL Server. Para o smoke, Python 3 e curl.
 
-## Fluxo principal
-
-1. Na inicialização, `DataService.InicializarDB()` executa `EnsureCreated()`, lê `livros.json` e adiciona produtos cujos códigos ainda não existem.
-2. `GET /` usa a rota padrão `Pedido/Carrossel` e exibe os produtos.
-3. `/Pedido/Carrinho?codigo=001` adiciona o produto informado, caso ainda não esteja no pedido. `GetPedido()` recupera o pedido pela sessão ou cria um novo e grava seu ID.
-4. O JavaScript envia ID do item e quantidade para `POST /Pedido/UpdateQuantidadePedido`, com token antiforgery. O servidor persiste a alteração e devolve os dados para atualizar a tela.
-5. `/Pedido/Cadastro` apresenta o formulário. `POST /Pedido/Resumo` verifica o cadastro, atualiza seus dados e renderiza o resumo. Cadastro inválido redireciona para o formulário, sem preservar explicitamente os erros no retorno.
-
-## Como executar localmente
-
-### Pré-requisitos
-
-- Git.
-- Ambiente compatível com o projeto `netcoreapp2.0`, incluindo SDK e runtime correspondentes e acesso à restauração dos pacotes NuGet.
-- Para usar a configuração original: **Windows e SQL Server Express LocalDB**, instância `(localdb)\MSSQLLocalDB`.
-- Visual Studio com suporte à carga de trabalho ASP.NET é uma alternativa à CLI, desde que compatível com esse projeto legado.
-
-Um SDK moderno, sozinho, não garante a execução deste projeto. Para evoluí-lo, a migração do framework e dos pacotes deve ser uma mudança separada e validada.
-
-### Passos pela CLI
-
-Execute os comandos no PowerShell:
-
-```powershell
+```bash
 git clone https://github.com/fernandojs8/.Net-Developer.git
-Set-Location ".Net-Developer/WEB/ASPNET Core_Part 2/CasaDoCodigo"
-
-$env:ASPNETCORE_ENVIRONMENT = "Development"
-dotnet restore
-dotnet build
-dotnet run
+cd .Net-Developer
+cp .env.example .env
+# Escolha uma senha local no .env.
+docker compose up --build -d
 ```
 
-Abra o endereço exibido no terminal. Execute a partir da pasta do projeto: o catálogo é lido pelo caminho relativo `livros.json`.
+O ambiente tem SQL Server, um job separado de migrations/seed e duas instâncias web:
 
-A conexão padrão fica em [appsettings.json](WEB/ASPNET%20Core_Part%202/CasaDoCodigo/appsettings.json) e usa autenticação integrada, banco `CasaDoCodigo` e LocalDB. A aplicação precisa de permissão para criar a base e gravar seus dados.
-
-Para usar outra instância SQL Server, substitua a configuração por variável de ambiente antes de executar:
-
-```powershell
-# Exemplo para SQL Server local com autenticação integrada no Windows.
-# Ajuste servidor e autenticação ao seu ambiente.
-$env:ConnectionStrings__Default = "Server=localhost;Database=CasaDoCodigo;Integrated Security=True;"
-dotnet run
-```
-
-Não versione credenciais. LocalDB não é uma opção de banco para hospedar a aplicação em cloud.
-
-### Inicialização do banco e diagnóstico
-
-- A inicialização atual usa `EnsureCreated()`, embora existam arquivos em `Migrations/`. Não trate esse fluxo como aplicação automática de migrations.
-- Para uma reprodução inicial, use uma base vazia de desenvolvimento. Em uma base existente, avalie o esquema antes de qualquer alteração; não exclua dados para resolver incompatibilidades.
-- Falha de conexão: confira a instância SQL Server/LocalDB, a autenticação e as permissões.
-- Erro ao ler `livros.json`: confira o diretório de execução.
-- Falha de SDK/runtime ou restauração: confira a compatibilidade com o alvo e os pacotes antigos.
-- A rota de tratamento de erros fora de Development aponta para `/Home/Error`, mas não há `HomeController` no código versionado; esse caminho precisa de correção antes de uma implantação.
-
-**Validação desta documentação:** os passos foram derivados dos arquivos do repositório. Build e execução não foram realizados no ambiente de análise, pois o comando `dotnet` não está disponível. Não há confirmação de execução atual.
-
-## Testes e validação
-
-Não foi encontrada uma suíte automatizada com xUnit, NUnit ou MSTest. Apesar do nome, `Alura.Loja.Testes.ConsoleApp` é uma aplicação console de exercícios de persistência; não comprova cobertura automatizada do projeto final.
-
-### Roteiro manual proposto — ainda não executado nesta revisão
-
-1. Iniciar com banco de desenvolvimento vazio e conferir o catálogo.
-2. Adicionar um produto; repetir a inclusão e confirmar que não duplica nem incrementa o item.
-3. Alterar a quantidade e conferir subtotal e total; usar zero e confirmar a remoção.
-4. Preencher o cadastro com dados fictícios e conferir os dados e itens no resumo.
-5. Enviar cadastro inválido e observar o redirecionamento e a perda de mensagens de validação.
-6. Abrir uma sessão independente e confirmar que recebe outro pedido.
-
-### Testes automatizados a acrescentar
-
-- **Unidade:** subtotal, total e regras de quantidade, incluindo rejeição de valores negativos.
-- **Integração com SQL Server:** persistência e recuperação dos relacionamentos, importação repetida do catálogo e remoção de itens.
-- **HTTP/segurança:** antiforgery, produto inexistente, ID de item inexistente e tentativa de alterar item pertencente a outra sessão.
-- **Fluxo completo:** catálogo → carrinho → cadastro → resumo, com resultados reproduzíveis no CI.
-
-Esses testes são próximos passos; não há relatório de cobertura ou resultado de pipeline para apresentar.
-
-## Limitações conhecidas
-
-Pontos identificados por leitura estática, sem exploração em uma aplicação em execução:
-
-- **Autorização de itens:** a atualização consulta o item apenas por ID, sem verificar se pertence ao pedido da sessão. É necessário restringir essa operação antes de expor a aplicação publicamente.
-- **Quantidades:** `AtualizarQuantidade` atribui diretamente o valor recebido; não há regra de rejeição de negativos nem limite superior.
-- **Produto inexistente:** `AddItem` chama `produtoEncontrado.Equals(null)`; se a consulta retornar nulo, isso pode gerar `NullReferenceException`.
-- **Mutação via GET:** a action `Carrinho` pode adicionar produtos por uma requisição GET. A inclusão deve passar a POST com proteção antiforgery.
-- **Checkout simplificado:** o resumo não implementa pagamento, confirmação definitiva, encerramento do carrinho ou processamento de pedidos.
-- **Persistência:** criação automática da base na inicialização, operações síncronas e ausência de estratégia documentada para concorrência e evolução de esquema.
-- **Operação:** não foram encontrados Dockerfile, pipeline de CI/CD, infraestrutura como código, health checks ou evidências de deploy.
-- **Observabilidade:** há configuração de logging e referência a um snippet do Application Insights no layout, mas isso não comprova telemetria configurada, coletada ou monitorada.
-
-## Próximos passos
-
-Ordem proposta para transformar o exercício em uma demonstração backend/cloud verificável:
-
-1. **Correção funcional e segurança:** validar propriedade dos itens e quantidades, tratar nulos, mover inclusão para POST, preservar erros do formulário e corrigir a rota de erro.
-2. **Atualização tecnológica:** migrar framework e dependências para uma versão suportada escolhida na implementação, com testes de regressão e SDK fixado.
-3. **Qualidade reproduzível:** criar os testes acima e CI com restore, build e testes; publicar resultados reais.
-4. **Persistência previsível:** definir migrations como fluxo de evolução, separar seed de demonstração e documentar configuração e recuperação do banco.
-5. **Demonstração em cloud:** escolher a hospedagem, automatizar provisionamento e deploy e validar sessão, configuração, TLS e acesso ao banco.
-6. **Operação demonstrável:** instrumentar requisições e dependências, criar health checks, alertas e um procedimento testado de rollback.
-
-### Evidências de cloud/produção a adicionar
-
-As opções abaixo são propostas, **não componentes já implementados**. Uma implantação de demonstração deve ser identificada como tal; não implica uso comercial, usuários reais ou experiência operacional em produção.
-
-| Evidência a construir | O que publicar no repositório |
+| Serviço | Endereço |
 | --- | --- |
-| Arquitetura implantada | Diagrama dos recursos efetivamente usados, região, comunicação com o banco e justificativa das escolhas. Em Azure, uma opção a avaliar é App Service + Azure SQL. |
-| Infraestrutura reproduzível | Bicep ou Terraform dos recursos reais, instruções de provisionamento/remoção e estimativa de custo com premissas. |
-| Deploy rastreável | Workflow de CI/CD, link de execução bem-sucedida e associação entre commit, artefato e versão implantada. |
-| Configuração e identidade | Nomes das configurações necessárias e descrição da autenticação; se adotados, demonstrar identidade gerenciada e Key Vault sem publicar valores secretos. |
-| Demonstração acessível | URL HTTPS, versão/commit, data de validação e roteiro com dados fictícios. |
-| Observabilidade | Capturas sanitizadas ou consultas de logs, latência e falhas; se adotado, mostrar uma requisição correlacionada no Application Insights. |
-| Escalabilidade da sessão | Registrar a solução realmente testada para múltiplas instâncias e reinícios, incluindo cache compartilhado e configuração necessária de proteção de dados. |
-| Desempenho medido | Script de carga, cenário, infraestrutura, duração, volume, p95 e taxa de erro. Não declarar capacidade sem medição. |
-| Recuperação operacional | Procedimento e evidência de rollback e de restauração de backup em ambiente de teste. |
+| Aplicação | http://localhost:5080 |
+| Segunda instância | http://localhost:5081 |
+| Liveness | `/health/live` |
+| Readiness de SQL, catálogo, sessão e chaves | `/health/ready` |
 
-Adicione badges somente quando houver pipelines ou relatórios reais. Não publique credenciais, dados pessoais, capturas de clientes ou métricas inventadas.
+As portas ficam vinculadas ao localhost. O banco e as chaves são preservados no volume. `LocalHttp=true` é usado somente no Compose; em cloud, HTTPS e cookie Secure permanecem habilitados.
+
+```bash
+python3 scripts/smoke.py
+# Somente em ambiente descartável: injeta imagem quebrada e recupera a versão conhecida.
+python3 scripts/smoke.py --rollback
+docker compose logs -f web web2
+docker compose down
+```
+
+O smoke cria um carrinho, usa a outra instância e reinicia a aplicação, verificando a continuidade da sessão. A opção de rollback para as instâncias web e troca suas imagens; não a execute num ambiente compartilhado com usuários.
+
+## Executar pelo SDK
+
+A [solução da raiz](CasaDoCodigo.sln) inclui apenas o projeto final modernizado e seus testes. Os projetos antigos de banco de dados e da primeira etapa web ficam fora dela.
+
+```bash
+dotnet restore CasaDoCodigo.sln
+dotnet build CasaDoCodigo.sln -c Release
+```
+
+Defina `ConnectionStrings__Default` para seu SQL Server. Em desenvolvimento HTTP local, defina `LocalHttp=true`; em HTTPS use o certificado de desenvolvimento. Execute a partir da pasta publicada/projeto, com `livros.json` no content root:
+
+```bash
+dotnet run --project "WEB/ASPNET Core_Part 2/CasaDoCodigo" -- --migrate
+dotnet run --project "WEB/ASPNET Core_Part 2/CasaDoCodigo" -- --seed
+dotnet run --project "WEB/ASPNET Core_Part 2/CasaDoCodigo"
+```
+
+Nenhum schema ou seed é aplicado automaticamente ao subir o servidor. Configure apenas um job de migração/seed por implantação. Não versione credenciais.
+
+### Bancos legados
+
+As migrations históricas foram preservadas. A nova migration adiciona cache de sessão, chaves, rowversion e índices/restrições. Ela recusa dados duplicados, quantidades inválidas e valores maiores que os novos limites, em vez de apagá-los/truncá-los silenciosamente.
+
+**Bases criadas com `EnsureCreated()` não têm histórico de migrations.** Não aplique a sequência inicial cegamente: faça backup, compare o schema e planeje um baseline revisado conforme [o runbook](docs/operations.md). Uma base vazia de demonstração pode seguir a sequência normalmente.
+
+## Testes e evidências
+
+```bash
+dotnet test CasaDoCodigo.sln -c Release
+```
+
+Sem infraestrutura, apenas os testes unitários rodam; integração aparece como ignorada. Para executar HTTP/SQL reais, disponibilize um SQL Server de teste com permissão para criar/remover bases:
+
+```bash
+export RUN_INTEGRATION_TESTS=true
+export TEST_SQL='Server=localhost;User Id=sa;Password=YOUR_LOCAL_PASSWORD;TrustServerCertificate=True'
+dotnet test CasaDoCodigo.sln -c Release
+```
+
+A suíte cria uma base exclusiva e a remove ao terminar. Cobre total/subtotal e limites, antiforgery, mutação apenas por POST, produto/item inexistente, acesso de outra sessão, versão concorrente, remoção de item, seed repetido, validação do formulário e fluxo catálogo → carrinho → cadastro → resumo. Também abre outra instância com as mesmas chaves/sessão SQL.
+
+O [CI](.github/workflows/ci.yml) executa testes com SQL Server, publica o app, roda Compose com duas instâncias e ensaia rollback de uma imagem deliberadamente quebrada. Resultados TRX ficam como artifacts nos [runs reais](https://github.com/fernandojs8/.Net-Developer/actions). O template Bicep é compilado em outro job; isso não equivale a recursos provisionados.
+
+Validação da mudança e links de execução estão no PR correspondente. Não há métrica de cobertura, carga, p95 ou capacidade inventada.
+
+## Cloud e operação
+
+A opção preparada é **Azure App Service Linux Standard S1 + Azure SQL Basic**, com Key Vault, identidade gerenciada para leitura do segredo e Application Insights/Log Analytics. O deploy manual cria/atualiza recursos, aplica migrations fora do processo web, publica em staging, verifica readiness por HTTPS e promove por swap. Um alerta de 5xx usa o email do operador configurado.
+
+Consulte [configuração e custos](docs/azure.md) e [backup, restauração, rollback e diagnóstico](docs/operations.md). Provisionamento exige assinatura, resource group, federação OIDC, variáveis e segredo SQL; esses dados não foram presumidos. Não se afirma implantação pública, experiência de produção ou alerta já disparado.
+
+## Limitações restantes
+
+- A sessão anônima não é uma conta autenticada. Não use dados reais de clientes numa demonstração pública.
+- Sessão SQL e chaves compartilhadas permitem continuidade entre processos; requisições simultâneas que criam o primeiro carrinho da sessão ainda podem gerar pedidos vazios órfãos. Rowversion evita sobrescrever quantidades desatualizadas; um conflito pede recarregamento.
+- Armazenar sessão, dados e chaves no mesmo SQL simplifica a demonstração, mas compartilha carga e acesso administrativo. As chaves XML precisam de proteção adicional e política de acesso em ambientes com dados sensíveis.
+- O frontend preserva Bootstrap/jQuery históricos do curso. Atualização completa dos assets e testes de navegador são uma evolução separada; a validação de servidor não depende desses scripts.
+- O template Azure usa endpoints públicos e regra SQL para serviços Azure; restrinja rede/identidade e permissões SQL antes de dados reais. O usuário SQL de provisionamento não é uma identidade de execução com privilégio mínimo.
+- Não há testes de carga, backup/restauração Azure executados ou evidência de deploy cloud até que o ambiente seja configurado.
 
 ## Origem e licença
 
-Projeto desenvolvido no contexto da formação .NET da Alura. Esta documentação distingue o conteúdo educacional existente das melhorias propostas.
-
-Código disponibilizado sob a [licença MIT](LICENSE).
+Estudos da Alura, com exercícios históricos em `Banco de Dados` e `WEB/ASPNET Core_Part 1`. Código sob [MIT](LICENSE).
