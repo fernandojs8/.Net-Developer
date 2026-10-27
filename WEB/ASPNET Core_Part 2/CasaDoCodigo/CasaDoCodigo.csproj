@@ -1,19 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
-
-  <PropertyGroup>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.All" Version="2.0.9" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <DotNetCliToolReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Tools" Version="2.0.3" />
-  </ItemGroup>
-
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="dotnet restore" />
-  </Target>
-
-</Project>
+<PropertyGroup><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
+<ItemGroup>
+<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.14" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14"><PrivateAssets>all</PrivateAssets></PackageReference>
+<PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.14" />
+<PackageReference Include="Microsoft.Extensions.Caching.SqlServer" Version="10.0.14" />
+<PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
+</ItemGroup>
+<ItemGroup><Content Update="livros.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /></ItemGroup>
+<ItemGroup>
+<PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.20.1" />
+<PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.20.1" />
+<PackageReference Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.20.1" />
+<PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.20.1" />
+<PackageReference Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.6.0" />
+</ItemGroup></Project>

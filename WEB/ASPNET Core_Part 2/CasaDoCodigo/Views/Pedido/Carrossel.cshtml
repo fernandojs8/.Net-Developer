@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "Carrossel";
 }
 
@@ -34,9 +34,10 @@
                                     <div class="produto-nome">@produto.Nome</div>
                                     <div><h4><strong>@produto.Preco</strong></h4></div>
                                     <div class="text-center">
-                                        <a asp-action="Carrinho"
-                                           asp-route-codigo="@produto.Codigo"
-                                           class="btn btn-success">Adicionar</a>
+                                        <form asp-action="Adicionar" method="post">
+                                            <input type="hidden" name="codigo" value="@produto.Codigo" />
+                                            <button type="submit" class="btn btn-success">Adicionar</button>
+                                        </form>
                                     </div>
                                 </div>
                             </div>

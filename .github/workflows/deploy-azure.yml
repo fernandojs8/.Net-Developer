@@ -1,0 +1,78 @@
+name: Azure demo deployment
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: azure-demo
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: azure-demo
+    timeout-minutes: 40
+    env:
+      AZ_RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+      APP_NAME: ${{ vars.AZURE_APP_NAME }}
+      ALERT_EMAIL: ${{ vars.AZURE_ALERT_EMAIL }}
+      SQL_PASSWORD: ${{ secrets.AZURE_SQL_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: {dotnet-version: '10.0.x'}
+      - name: Check configuration
+        run: |
+          test -n "$AZ_RG" && test -n "$APP_NAME" && test -n "$ALERT_EMAIL" && test -n "$SQL_PASSWORD"
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Provision infrastructure
+        run: |
+          python3 - <<'PYTHON'
+          import os,json
+          params={k:{"value":v} for k,v in {"appName":os.environ["APP_NAME"],"sqlPassword":os.environ["SQL_PASSWORD"],"alertEmail":os.environ["ALERT_EMAIL"]}.items()}
+          with open(os.path.join(os.environ["RUNNER_TEMP"],"parameters.json"),"w") as f: json.dump({"parameters":params},f)
+          PYTHON
+          az deployment group create -g "$AZ_RG" -n casa-demo --template-file infra/main.bicep --parameters @"$RUNNER_TEMP/parameters.json" --output none
+          sql_server=$(az deployment group show -g "$AZ_RG" -n casa-demo --query properties.outputs.sqlServerName.value -o tsv)
+          echo "SQL_SERVER=$sql_server" >> "$GITHUB_ENV"
+      - name: Build immutable application package
+        run: |
+          dotnet publish "WEB/ASPNET Core_Part 2/CasaDoCodigo" -c Release -o artifacts/app
+          (cd artifacts/app && zip -qr ../../app.zip .)
+      - name: Temporarily allow migration runner
+        run: |
+          runner_ip=$(curl -fsS https://api.ipify.org)
+          az sql server firewall-rule create -g "$AZ_RG" -s "$SQL_SERVER" -n github-migrations --start-ip-address "$runner_ip" --end-ip-address "$runner_ip" --output none
+      - name: Apply migrations and seed demonstration catalogue
+        run: |
+          python3 - <<'PYTHON'
+          import os,subprocess
+          env=dict(os.environ)
+          env['ConnectionStrings__Default']=f"Server=tcp:{env['SQL_SERVER']}.database.windows.net,1433;Initial Catalog=CasaDoCodigo;User ID=casademo;Password={env['SQL_PASSWORD']};Encrypt=True;TrustServerCertificate=False;"
+          subprocess.run(['dotnet','CasaDoCodigo.dll','--migrate','--seed'],cwd='artifacts/app',env=env,check=True)
+          PYTHON
+      - name: Remove temporary firewall rule
+        if: always() && env.SQL_SERVER != ''
+        run: az sql server firewall-rule delete -g "$AZ_RG" -s "$SQL_SERVER" -n github-migrations --output none || true
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.APP_NAME }}
+          slot-name: staging
+          package: app.zip
+      - name: Validate staging over TLS
+        run: curl --fail --retry 30 --retry-all-errors --retry-delay 10 "https://$APP_NAME-staging.azurewebsites.net/health/ready"
+      - name: Promote validated slot
+        run: az webapp deployment slot swap -g "$AZ_RG" -n "$APP_NAME" --slot staging --target-slot production --output none
+      - name: Validate production over TLS
+        run: curl --fail --retry 12 --retry-all-errors --retry-delay 5 "https://$APP_NAME.azurewebsites.net/health/ready"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ github.sha }}
+          path: app.zip
+      - name: Delete temporary parameter file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/parameters.json"

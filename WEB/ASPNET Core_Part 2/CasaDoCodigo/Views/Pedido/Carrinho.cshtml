@@ -1,10 +1,11 @@
-﻿@{
+@{
     ViewData["Title"] = "Carrinho";
 }
 
 @model CarrinhoViewModel;
 
-<form method="post" asp-action="carrinho"></form>
+@Html.AntiForgeryToken()
+<p id="cart-error" role="alert" class="text-danger"></p>
 
 <h3>Meu Carrinho</h3>
 <div class="panel panel-default">
@@ -30,7 +31,7 @@
 
         @foreach (var item in Model.Items)
         {
-            <div class="row row-center linha-produto" item-id="@item.Id">
+            <div class="row row-center linha-produto" item-id="@item.Id" item-version="@Convert.ToBase64String(item.RowVersion)">
                 <div class="col-md-3">
                     <img class="img-produto-carrinho" src="/images/produtos/large_@(item.Produto.Codigo).jpg" />
                 </div>
@@ -44,7 +45,7 @@
                                 <span class="glyphicon-minus"></span>
                             </button>
                         </span>
-                        <input type="text" value="@(item.Quantidade)"
+                        <input type="number" min="0" max="99" value="@(item.Quantidade)"
                                class="form-control text-center"
                                onblur="carrinho.updateQuantidade(this)" />
                         <span class="input-group-btn">

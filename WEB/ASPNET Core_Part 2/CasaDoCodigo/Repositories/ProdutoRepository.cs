@@ -1,34 +1,16 @@
-﻿using CasaDoCodigo.Models;
+using CasaDoCodigo.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace CasaDoCodigo.Repositories
+namespace CasaDoCodigo.Repositories;
+public class ProdutoRepository(ApplicationContext db) : IProdutoRepository
 {
-    public class ProdutoRepository : BaseRepository<Produto>, IProdutoRepository
+    public Task<List<Produto>> GetProdutosAsync() => db.Set<Produto>().AsNoTracking().OrderBy(x => x.Id).ToListAsync();
+    public async Task SaveProdutosAsync(List<Livro> livros)
     {
-        public ProdutoRepository(ApplicationContext contexto) : base(contexto) { }
-
-        public void SaveProdutos(List<Livro> livros)
+        foreach (var livro in livros)
         {
-            livros
-                .ForEach(livro =>
-                {
-                    if (!DBSet
-                            .Where(produto => produto.Codigo == livro.Codigo)
-                            .Any())
-                    {
-                        DBSet
-                            .Add(new Produto(livro.Codigo, livro.Nome, livro.Preco));
-                    }
-                });
-
-            contexto.SaveChanges();
+            if (!await db.Set<Produto>().AnyAsync(x => x.Codigo == livro.Codigo))
+                db.Add(new Produto(livro.Codigo, livro.Nome, livro.Preco));
         }
-
-        public IList<Produto> GetProdutos()
-        {
-            return DBSet.ToList();
-        }
+        await db.SaveChangesAsync();
     }
 }

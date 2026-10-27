@@ -1,7 +1,2 @@
-﻿namespace CasaDoCodigo
-{
-    public interface IDataService
-    {
-        void InicializarDB();
-    }
-}
+namespace CasaDoCodigo;
+public interface IDataService { Task SeedAsync(); }

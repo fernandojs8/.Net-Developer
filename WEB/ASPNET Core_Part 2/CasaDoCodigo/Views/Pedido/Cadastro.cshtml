@@ -1,12 +1,13 @@
-﻿@{
+@{
     ViewData["Title"] = "Cadastro";
 }
 
-@model Cadastro
+@model CadastroInput
 
 <h3>Cadastro</h3>
 
 <form asp-action="resumo" method="post">
+    <div asp-validation-summary="All" class="text-danger"></div>
 
     <div class="panel panel-default">
         <div class="panel-body">

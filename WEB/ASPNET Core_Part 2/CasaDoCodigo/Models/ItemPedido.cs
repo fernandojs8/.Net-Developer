@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace CasaDoCodigo.Models
@@ -31,10 +31,22 @@ namespace CasaDoCodigo.Models
         {
             Pedido = pedido;
             Produto = produto;
+            ValidarQuantidade(quantidade);
             Quantidade = quantidade;
             PrecoUnitario = precoUnitario;
         }
 
-        public void AtualizarQuantidade(int quantidade) => Quantidade = quantidade;
+        [Timestamp]
+        public byte[] RowVersion { get; set; }
+
+        public void AtualizarQuantidade(int quantidade)
+        {
+            ValidarQuantidade(quantidade);
+            Quantidade = quantidade;
+        }
+        public static void ValidarQuantidade(int quantidade)
+        {
+            if (quantidade < 0 || quantidade > 99) throw new ArgumentOutOfRangeException(nameof(quantidade), "Quantidade deve estar entre 0 e 99.");
+        }
     }
 }
